@@ -510,7 +510,7 @@ int main(void)
 				last_humidity_time = HAL_GetTick() - 1000;
 
 				humidity_count = 0;
-
+				UART_Send("MEASURE_BEGIN");
 				Change_State(STATE_MEASURING);
 			}
 
