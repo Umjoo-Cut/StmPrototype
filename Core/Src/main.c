@@ -258,6 +258,31 @@ void UART_Send(const char* msg)
 }
 
 // =========================
+// UART2 TEST
+// 자동 개행 포함
+// =========================
+//void UART_Send(const char* msg)
+//{
+//    char buffer[64];
+//
+//    snprintf(buffer,
+//             sizeof(buffer),
+//             "%s\r\n",
+//             msg);
+//
+//    // Raspberry Pi 통신
+//    HAL_UART_Transmit(&huart1,
+//                      (uint8_t*)buffer,
+//                      strlen(buffer),
+//                      100);
+//
+//    // PC 디버그 출력
+//    HAL_UART_Transmit(&huart2,
+//                      (uint8_t*)buffer,
+//                      strlen(buffer),
+//                      100);
+//}
+// =========================
 // 상태 전환
 // =========================
 void Change_State(SystemState_t new_state)
@@ -349,6 +374,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM2_Init();
   MX_TIM1_Init();
+  // MX_USART2_UART_Init(); // uart2 test용
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -367,6 +393,7 @@ int main(void)
   HAL_UART_Receive_IT(&huart1,
                       &rx_char,
                       1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -539,7 +566,7 @@ int main(void)
 			    last_humidity_time = now;
 
 			    if(DHT11_Read(&temperature,
-			                   &humidity)
+			                  &humidity)
 			       == DHT11_OK)
 			    {
 			        sprintf(tx_buf,
@@ -549,6 +576,10 @@ int main(void)
 			        UART_Send(tx_buf);
 
 			        humidity_count++;
+			    }
+			    else
+			    {
+			        UART_Send("DHT_ERROR");
 			    }
 			}
 			// 측정 종료

@@ -2,6 +2,6 @@
 ../Core/Src/dht11.c:18:13:Set_Pin_Input	1
 ../Core/Src/dht11.c:31:13:Delay_us	2
 ../Core/Src/dht11.c:40:6:DHT11_Init	1
-../Core/Src/dht11.c:44:16:DHT11_Start	4
-../Core/Src/dht11.c:89:16:DHT11_ReadByte	5
-../Core/Src/dht11.c:120:9:DHT11_Read	3
+../Core/Src/dht11.c:44:16:DHT11_Start	5
+../Core/Src/dht11.c:97:16:DHT11_ReadByte	7
+../Core/Src/dht11.c:138:9:DHT11_Read	3

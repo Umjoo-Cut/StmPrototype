@@ -43,7 +43,8 @@ void DHT11_Init(void)
 
 static uint8_t DHT11_Start(void)
 {
-    uint8_t response=0;
+    uint32_t timeout;
+    uint8_t response = 0;
 
     Set_Pin_Output();
 
@@ -65,53 +66,70 @@ static uint8_t DHT11_Start(void)
 
     Delay_us(40);
 
-    if(!(HAL_GPIO_ReadPin(
-         DHT11_PORT,
-         DHT11_PIN)))
+    if(!HAL_GPIO_ReadPin(
+        DHT11_PORT,
+        DHT11_PIN))
     {
         Delay_us(80);
 
         if(HAL_GPIO_ReadPin(
-           DHT11_PORT,
-           DHT11_PIN))
+            DHT11_PORT,
+            DHT11_PIN))
         {
-            response=1;
+            response = 1;
         }
     }
 
+    timeout = HAL_GetTick();
+
     while(HAL_GPIO_ReadPin(
           DHT11_PORT,
-          DHT11_PIN));
+          DHT11_PIN))
+    {
+        if(HAL_GetTick()-timeout > 10)
+        {
+            return 0;
+        }
+    }
 
     return response;
 }
-
 static uint8_t DHT11_ReadByte(void)
 {
-    uint8_t i,j;
+    uint8_t i = 0;
+    uint8_t j;
+    uint32_t timeout;
 
-    for(j=0;j<8;j++)
+    for(j=0; j<8; j++)
     {
+        timeout = HAL_GetTick();
+
         while(!HAL_GPIO_ReadPin(
               DHT11_PORT,
-              DHT11_PIN));
+              DHT11_PIN))
+        {
+            if(HAL_GetTick()-timeout > 10)
+                return 0;
+        }
 
         Delay_us(40);
 
-        if(!HAL_GPIO_ReadPin(
+        if(HAL_GPIO_ReadPin(
              DHT11_PORT,
              DHT11_PIN))
-        {
-            i &= ~(1<<(7-j));
-        }
-        else
         {
             i |= (1<<(7-j));
         }
 
+        timeout = HAL_GetTick();
+
         while(HAL_GPIO_ReadPin(
-             DHT11_PORT,
-             DHT11_PIN));
+              DHT11_PORT,
+              DHT11_PIN))
+        {
+            if(HAL_GetTick()-timeout > 10)
+                return 0;
+        }
     }
 
     return i;
