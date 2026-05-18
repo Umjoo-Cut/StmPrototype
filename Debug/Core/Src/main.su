@@ -1,0 +1,16 @@
+../Core/Src/main.c:129:6:LED_All_Off	8	static
+../Core/Src/main.c:147:6:Green_LED_On	8	static
+../Core/Src/main.c:157:6:Yellow_LED_On	8	static
+../Core/Src/main.c:167:6:Red_LED_On	8	static
+../Core/Src/main.c:177:6:Engine_ON	8	static
+../Core/Src/main.c:187:6:Engine_OFF	8	static
+../Core/Src/main.c:200:9:Is_Seat_Active	8	static
+../Core/Src/main.c:209:10:Read_MQ3	16	static
+../Core/Src/main.c:225:6:Buzzer_Alert	16	static
+../Core/Src/main.c:245:6:UART_Send	80	static
+../Core/Src/main.c:263:6:Change_State	16	static
+../Core/Src/main.c:276:6:HAL_UART_RxCpltCallback	16	static
+../Core/Src/main.c:323:5:main	24	static
+../Core/Src/main.c:678:6:SystemClock_Config	88	static
+../Core/Src/main.c:724:13:MX_NVIC_Init	8	static
+../Core/Src/main.c:739:6:Error_Handler	4	static,ignoring_inline_asm
