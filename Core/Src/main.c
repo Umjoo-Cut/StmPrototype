@@ -49,6 +49,22 @@
 
 /* USER CODE BEGIN PV */
 // =========================
+// UART Protocol
+// =========================
+
+#define MSG_PASS             "PASS"
+#define MSG_FAIL             "FAIL"
+#define MSG_ERROR            "ERROR"
+#define MSG_RETRY            "RETRY"
+
+#define MSG_SYSTEM_START     "SYSTEM_START"
+#define MSG_SEAT_ON          "SEAT_ON"
+#define MSG_SEAT_OFF         "SEAT_OFF"
+#define MSG_BLOW_START       "BLOW_START"
+#define MSG_MEASURE_BEGIN    "MEASURE_BEGIN"
+#define MSG_MEASURE_END      "MEASURE_END"
+#define MSG_DHT_ERROR        "DHT_ERROR"
+// =========================
 // 타이밍 설정
 // =========================
 
@@ -320,42 +336,56 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     {
         if(rx_char == '\r')
         {
-            // 무시 (CR 제거)
+            // CR 무시
         }
+
         else if(rx_char == '\n')
         {
             uart_rx_data[idx] = '\0';
 
-            if(strcmp(uart_rx_data, "PASS") == 0)
+            if(strcmp(uart_rx_data, MSG_PASS) == 0)
             {
                 fail_count = 0;
                 Change_State(STATE_PASS);
             }
 
-            else if(strcmp(uart_rx_data, "FAIL") == 0)
+            else if(strcmp(uart_rx_data, MSG_FAIL) == 0)
             {
-            	fail_count++;
+                fail_count++;
                 Change_State(STATE_FAIL);
             }
-            else if(strcmp(uart_rx_data, "ERROR") == 0)
+
+            else if(strcmp(uart_rx_data, MSG_ERROR) == 0)
+            {
                 Change_State(STATE_IDLE);
+            }
+
+            else if(strcmp(uart_rx_data, MSG_RETRY) == 0)
+            {
+                measure_start_time = 0;
+                last_sample_time = 0;
+                last_humidity_time = HAL_GetTick() - 1000;
+                humidity_count = 0;
+
+                Change_State(STATE_WAIT_BLOW);
+            }
 
             idx = 0;
         }
+
         else
         {
-            if(idx < sizeof(uart_rx_data) - 1)
+            if(idx < sizeof(uart_rx_data)-1)
             {
                 uart_rx_data[idx++] = rx_char;
             }
             else
             {
-                // overflow 방지 → 리셋
                 idx = 0;
             }
         }
 
-        HAL_UART_Receive_IT(&huart1, &rx_char, 1);
+        HAL_UART_Receive_IT(&huart1,&rx_char,1);
     }
 }
 /* USER CODE END 0 */
@@ -471,7 +501,7 @@ int main(void)
 			if(start_pressed)
 			{
 			    fail_count = 0;
-				UART_Send("SYSTEM_START");
+				UART_Send(MSG_SYSTEM_START);
 
 				Change_State(STATE_WAIT_SEAT);
 			}
@@ -489,7 +519,7 @@ int main(void)
 			// 착석 감지
 			if(Is_Seat_Active())
 			{
-				UART_Send("SEAT_ON");
+				UART_Send(MSG_SEAT_ON);
 
 				Change_State(STATE_WAIT_BLOW);
 			}
@@ -508,7 +538,7 @@ int main(void)
 		    // 10초 안 복귀
 		    if(Is_Seat_Active())
 		    {
-		        UART_Send("SEAT_ON");
+		    	UART_Send(MSG_SEAT_ON);
 
 		        // 측정 변수 초기화
 		        measure_start_time = 0;
@@ -549,7 +579,7 @@ int main(void)
 			// 자리 이탈
 			if(!Is_Seat_Active())
 			{
-			    UART_Send("SEAT_OFF");
+				UART_Send(MSG_SEAT_OFF);
 
 			    seat_lost_start_time = HAL_GetTick();
 
@@ -560,7 +590,7 @@ int main(void)
 			// Blow 버튼
 			if(blow_pressed)
 			{
-				UART_Send("BLOW_START");
+				UART_Send(MSG_BLOW_START);
 
 				measure_start_time = HAL_GetTick();
 
@@ -569,7 +599,7 @@ int main(void)
 				last_humidity_time = HAL_GetTick() - 1000;
 
 				humidity_count = 0;
-				// UART_Send("MEASURE_BEGIN");
+
 				Change_State(STATE_MEASURING);
 			}
 
@@ -584,7 +614,7 @@ int main(void)
 
 		    if(measure_entered == 0)
 		    {
-		        UART_Send("MEASURE_BEGIN");
+		    	UART_Send(MSG_MEASURE_BEGIN);
 		        measure_entered = 1;
 		    }
 			// 빠른 blink
@@ -601,7 +631,7 @@ int main(void)
 			if(!Is_Seat_Active())
 			{
 
-			    UART_Send("SEAT_OFF");
+				UART_Send(MSG_SEAT_OFF);
 
 			    seat_lost_start_time = HAL_GetTick();
 
@@ -645,8 +675,7 @@ int main(void)
 			    }
 			    else
 			    {
-			        UART_Send("DHT_ERROR");
-			    }
+			    	UART_Send(MSG_DHT_ERROR);			    }
 
 			    // 성공/실패 관계없이 횟수 증가
 			    humidity_count++;
@@ -654,8 +683,7 @@ int main(void)
 			// 측정 종료
 			if(now - measure_start_time >= MQ3_MEASURE_TIME)
 			{
-			    UART_Send("MEASURE_END");
-
+				UART_Send(MSG_MEASURE_END);
 
 
 			    Change_State(STATE_WAIT_RESULT);
@@ -682,7 +710,7 @@ int main(void)
 			// 자리 이탈
 			if(!Is_Seat_Active())
 			{
-			    UART_Send("SEAT_OFF");
+				UART_Send(MSG_SEAT_OFF);
 
 			    seat_lost_start_time = HAL_GetTick();
 
@@ -716,7 +744,7 @@ int main(void)
 				// 일정 시간 이상 자리 비움
 				if(HAL_GetTick() - pressure_lost_start >= PRESSURE_LOST_TIMEOUT)
 				{
-					UART_Send("SEAT_OFF");
+					UART_Send(MSG_SEAT_OFF);
 
 					Change_State(STATE_IDLE);
 				}
@@ -763,7 +791,7 @@ int main(void)
 		        if(blow_pressed)
 		        {
 
-		            UART_Send("BLOW_START");
+		        	UART_Send(MSG_BLOW_START);
 
 
 		            measure_start_time = HAL_GetTick();
