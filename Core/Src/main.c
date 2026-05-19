@@ -72,7 +72,7 @@
 #define MQ3_MEASURE_TIME        5000    // 전체 측정 시간(ms)
 
 #define PRESSURE_LOST_TIMEOUT   10000   // PASS 상태에서 자리 비움 허용 시간(ms)
-
+#define RESULT_TIMEOUT 10000
 
 // =========================
 // 상태 머신
@@ -361,9 +361,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
             else if(strcmp(uart_rx_data, MSG_ERROR) == 0)
             {
+                measure_start_time=0;
+                last_sample_time=0;
+
+                humidity_count=0;
+
                 Change_State(STATE_IDLE);
             }
-
             else if(strcmp(uart_rx_data, MSG_RETRY) == 0)
             {
                 measure_start_time = 0;
@@ -565,12 +569,15 @@ int main(void)
 		    }
 
 		    // 시간 초과
-		    if(HAL_GetTick() - seat_lost_start_time >=
-		       PRESSURE_LOST_TIMEOUT)
+		    if(HAL_GetTick()-seat_lost_start_time
+		        >= PRESSURE_LOST_TIMEOUT)
 		    {
-		        Change_State(STATE_IDLE);
-		    }
+		        UART_Send(MSG_FAIL);
 
+		        Change_State(STATE_FAIL);
+
+		        break;
+		    }
 		    break;
 		// =========================
 		// WAIT_BLOW
@@ -707,7 +714,14 @@ int main(void)
 		// WAIT_RESULT
 		// =========================
 		case STATE_WAIT_RESULT:
+			if(HAL_GetTick()-state_enter_time >= RESULT_TIMEOUT)
+			{
+			    UART_Send(MSG_ERROR);
 
+			    Change_State(STATE_IDLE);
+
+			    break;
+			}
 			// 느린 blink
 			if((now / 300) % 2)
 			{
