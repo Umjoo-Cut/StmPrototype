@@ -815,7 +815,18 @@ int main(void)
 			Green_LED_On();
 
 			Engine_ON();
+			// START 버튼 누르면 새 시퀀스 시작
+			if(start_pressed)
+			{
+			    Engine_OFF();
+			    pressure_lost_start = 0;
 
+			    UART_Send(MSG_SYSTEM_START);
+
+			    Change_State(STATE_WAIT_SEAT);
+
+			    break;
+			}
 			// 운전자 이탈 감지
 			if(!Is_Seat_Active())
 			{
