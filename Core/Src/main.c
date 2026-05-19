@@ -364,8 +364,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
             {
                 measure_start_time = 0;
                 last_sample_time = 0;
-                last_humidity_time = HAL_GetTick() - 1000;
+                last_humidity_time = HAL_GetTick()-1000;
                 humidity_count = 0;
+
+                // 버튼 상태 재동기화
+                blow_btn_prev =
+                    HAL_GPIO_ReadPin(
+                        BLOW_BTN_GPIO_Port,
+                        BLOW_BTN_Pin
+                    );
 
                 Change_State(STATE_WAIT_BLOW);
             }
