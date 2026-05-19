@@ -136,6 +136,14 @@ static uint8_t measure_entered = 0;
 // =========================
 // Buzzer
 // =========================
+uint8_t buzzer_active = 0;
+uint8_t buzzer_state = 0;
+uint8_t buzzer_count = 0;
+
+uint32_t buzzer_time = 0;
+// =========================
+// Buzzer
+// =========================
 static uint8_t fail_buzzer_done = 0;
 /* USER CODE END PV */
 
@@ -245,24 +253,67 @@ uint32_t Read_MQ3(void)
 }
 
 // =========================
-// 부저 패턴 - 삐 삐 삐 삐 삐
+// 부저 패턴
 // =========================
-void Buzzer_Alert(void)
+void Start_Buzzer_Alert(void)
 {
-    for(int i = 0; i < 5; i++)
-    {
-        HAL_TIM_PWM_Start(&htim1,
-                          TIM_CHANNEL_1);
+    buzzer_active = 1;
+    buzzer_state = 1;
+    buzzer_count = 0;
 
-        HAL_Delay(200);
-
-        HAL_TIM_PWM_Stop(&htim1,
-                         TIM_CHANNEL_1);
-
-        HAL_Delay(100);
-    }
+    buzzer_time = HAL_GetTick();
+    HAL_TIM_PWM_Stop(&htim1,
+                     TIM_CHANNEL_1);   // 추가
+    HAL_TIM_PWM_Start(&htim1,
+                      TIM_CHANNEL_1);
 }
 
+void Update_Buzzer(void)
+{
+    if(!buzzer_active)
+        return;
+
+    uint32_t now = HAL_GetTick();
+
+    // ON 상태 (200ms)
+    if(buzzer_state)
+    {
+        if(now - buzzer_time >= 200)
+        {
+            HAL_TIM_PWM_Stop(&htim1,
+                             TIM_CHANNEL_1);
+
+            buzzer_state = 0;
+            buzzer_time = now;
+        }
+    }
+
+    // OFF 상태 (100ms)
+    else
+    {
+        if(now - buzzer_time >= 100)
+        {
+            buzzer_count++;
+
+            if(buzzer_count >= 5)
+            {
+                HAL_TIM_PWM_Stop(&htim1,
+                                 TIM_CHANNEL_1);
+
+                buzzer_active = 0;
+                buzzer_state = 0;
+
+                return;
+            }
+
+            HAL_TIM_PWM_Start(&htim1,
+                              TIM_CHANNEL_1);
+
+            buzzer_state = 1;
+            buzzer_time = now;
+        }
+    }
+}
 // =========================
 // UART 송신
 // 자동 개행 포함
@@ -326,8 +377,14 @@ void Change_State(SystemState_t new_state)
     if(new_state != STATE_FAIL)
     {
         fail_buzzer_done = 0;
-    }
 
+        HAL_TIM_PWM_Stop(&htim1,
+                         TIM_CHANNEL_1);
+
+        buzzer_active = 0;
+        buzzer_state = 0;
+        buzzer_count = 0;
+    }
     LED_All_Off();
 }
 // =========================
@@ -468,8 +525,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  uint32_t now = HAL_GetTick();
 
+	  uint32_t now = HAL_GetTick();
+	  Update_Buzzer();
 	// =========================
 	// 버튼 읽기
 	// =========================
@@ -796,7 +854,7 @@ int main(void)
 		    // FAIL 진입 시 한 번만 부저
 		    if(!fail_buzzer_done)
 		    {
-		        Buzzer_Alert();
+		        Start_Buzzer_Alert();
 		        fail_buzzer_done = 1;
 		    }
 
