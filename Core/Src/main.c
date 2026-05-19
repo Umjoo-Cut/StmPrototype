@@ -130,13 +130,13 @@ char uart_rx_data[32];
 uint8_t rx_char;
 
 char tx_buf[64];
-// =========================
-// FAIL 재측정 횟수
-// =========================
-uint8_t fail_count = 0;
 
-#define MAX_FAIL_COUNT 3
 static uint8_t measure_entered = 0;
+
+// =========================
+// Buzzer
+// =========================
+static uint8_t fail_buzzer_done = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -322,6 +322,12 @@ void Change_State(SystemState_t new_state)
         measure_entered = 0;
     }
 
+    // FAIL 상태 아닐 때 부저 플래그 초기화
+    if(new_state != STATE_FAIL)
+    {
+        fail_buzzer_done = 0;
+    }
+
     LED_All_Off();
 }
 // =========================
@@ -345,13 +351,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
             if(strcmp(uart_rx_data, MSG_PASS) == 0)
             {
-                fail_count = 0;
                 Change_State(STATE_PASS);
             }
 
             else if(strcmp(uart_rx_data, MSG_FAIL) == 0)
             {
-                fail_count++;
                 Change_State(STATE_FAIL);
             }
 
@@ -364,6 +368,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
             {
                 measure_start_time = 0;
                 last_sample_time = 0;
+
                 last_humidity_time = HAL_GetTick()-1000;
                 humidity_count = 0;
 
@@ -507,7 +512,6 @@ int main(void)
 			// START 버튼
 			if(start_pressed)
 			{
-			    fail_count = 0;
 				UART_Send(MSG_SYSTEM_START);
 
 				Change_State(STATE_WAIT_SEAT);
@@ -775,57 +779,17 @@ int main(void)
 
 		    Engine_OFF();
 
-		    // FAIL 진입 직후 부저
-		    if(now - state_enter_time < 50)
+		    // FAIL 진입 시 한 번만 부저
+		    if(!fail_buzzer_done)
 		    {
 		        Buzzer_Alert();
+		        fail_buzzer_done = 1;
 		    }
 
-		    // 3회 미만이면 재측정 허용
-		    if(fail_count < MAX_FAIL_COUNT)
+		    // START 버튼만 허용
+		    if(start_pressed)
 		    {
-		        // Engine LED blink
-		        if((now / 200) % 2)
-		        {
-		            Engine_ON();
-		        }
-		        else
-		        {
-		            Engine_OFF();
-		        }
-
-		        // Blow 버튼 누르면 재측정
-		        if(blow_pressed)
-		        {
-
-		        	UART_Send(MSG_BLOW_START);
-
-
-		            measure_start_time = HAL_GetTick();
-
-		            last_sample_time = 0;
-
-		            last_humidity_time =
-		                HAL_GetTick() - 1000;
-
-		            humidity_count = 0;
-
-		            Change_State(STATE_MEASURING);
-		        }
-		    }
-
-		    // 3회째 실패
-		    else
-		    {
-		        Engine_OFF();
-
-		        // START로 초기화
-		        if(start_pressed)
-		        {
-		            fail_count = 0;
-
-		            Change_State(STATE_IDLE);
-		        }
+		        Change_State(STATE_IDLE);
 		    }
 
 		    break;
