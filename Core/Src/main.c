@@ -139,7 +139,9 @@ static uint8_t measure_entered = 0;
 // Buzzer
 // =========================
 static uint8_t fail_buzzer_done = 0;
-
+static volatile uint8_t other_request = 0;
+static uint8_t other_buzzer_done = 0;
+static uint8_t idle_buzzer_request = 0;
 // =========================
 // RETRY
 // =========================
@@ -383,8 +385,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
             else if(strcmp(uart_rx_data, MSG_OTHER) == 0)
             {
-                Buzzer_Alert();   // 먼저 부저 울림
-                Change_State(STATE_IDLE);
+                idle_buzzer_request = 1;
+
             }
             idx = 0;
         }
@@ -468,6 +470,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if(idle_buzzer_request)
+	  {
+	      idle_buzzer_request = 0;
+	      Buzzer_Alert();
+	  }
 	  uint32_t now = HAL_GetTick();
 
 	// =========================
@@ -505,31 +512,36 @@ int main(void)
 		// =========================
 		// IDLE
 		// =========================
-		case STATE_IDLE:
+	case STATE_IDLE:
 
-			LED_All_Off();
-			Engine_OFF();
+	    LED_All_Off();
+	    Engine_OFF();
 
-			// ===== 시스템 초기화 =====
-			pressure_lost_start = 0;
-			fail_count = 0;
-			measure_start_time = 0;
-			last_sample_time = 0;
-			humidity_count = 0;
-			seat_lost_start_time = 0;
-			retry_start_time = 0;
+	    // 시스템 초기화...
+	    pressure_lost_start = 0;
+	    fail_count = 0;
+	    measure_start_time = 0;
+	    last_sample_time = 0;
+	    humidity_count = 0;
+	    seat_lost_start_time = 0;
+	    retry_start_time = 0;
+	    measure_entered = 0;
 
-			measure_entered = 0;
+	    // ⭐ OTHER 부저 (1회만)
+	    if(idle_buzzer_request)
+	    {
+	        idle_buzzer_request = 0;   // 먼저 꺼야 안전
 
-			// START 버튼
-			if(start_pressed)
-			{
-				UART_Send(MSG_SYSTEM_START);
-				Change_State(STATE_WAIT_SEAT);
-			}
+	        Buzzer_Alert();            // 여기서 실행
+	    }
 
-			break;
+	    if(start_pressed)
+	    {
+	        UART_Send(MSG_SYSTEM_START);
+	        Change_State(STATE_WAIT_SEAT);
+	    }
 
+	    break;
 
 		// =========================
 		// WAIT_SEAT
