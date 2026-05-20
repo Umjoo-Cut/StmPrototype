@@ -56,6 +56,7 @@
 #define MSG_FAIL             "FAIL"
 #define MSG_ERROR            "ERROR"
 #define MSG_RETRY            "RETRY"
+#define MSG_OTHER			 "OTHER"
 
 #define MSG_SYSTEM_START     "SYSTEM_START"
 #define MSG_SEAT_ON          "SEAT_ON"
@@ -380,6 +381,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
                 Change_State(STATE_RETRY_WAIT);
             }
 
+            else if(strcmp(uart_rx_data, MSG_OTHER) == 0)
+            {
+                Change_State(STATE_IDLE);
+            }
             idx = 0;
         }
 
@@ -502,17 +507,23 @@ int main(void)
 		case STATE_IDLE:
 
 			LED_All_Off();
-
 			Engine_OFF();
 
+			// ===== 시스템 초기화 =====
 			pressure_lost_start = 0;
+			fail_count = 0;
+			measure_start_time = 0;
+			last_sample_time = 0;
+			humidity_count = 0;
+			seat_lost_start_time = 0;
+			retry_start_time = 0;
+
+			measure_entered = 0;
 
 			// START 버튼
 			if(start_pressed)
 			{
-				fail_count = 0;
 				UART_Send(MSG_SYSTEM_START);
-
 				Change_State(STATE_WAIT_SEAT);
 			}
 
@@ -835,7 +846,7 @@ int main(void)
 		        fail_buzzer_done = 1;
 		    }
 
-		    // START 버튼만 허용
+		    // START 버튼만 허용n
 		    if(start_pressed)
 		    {
 		        Change_State(STATE_IDLE);
