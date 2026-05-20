@@ -145,7 +145,10 @@ static uint8_t fail_buzzer_done = 0;
 uint32_t retry_start_time = 0;
 #define RETRY_DELAY_TIME 5000
 
-
+// =========================
+// fail_count
+// =========================
+uint8_t fail_count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -347,9 +350,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
             else if(strcmp(uart_rx_data, MSG_FAIL) == 0)
             {
-                Change_State(STATE_FAIL);
-            }
+                fail_count++;
 
+                if(fail_count < 3)
+                {
+                    // 1~2회 실패 → 재측정
+                    retry_start_time = HAL_GetTick();
+                    Change_State(STATE_RETRY_WAIT);
+                }
+                else
+                {
+                    // 3회 실패 → 최종 종료
+                    Change_State(STATE_FAIL);
+                }
+            }
             else if(strcmp(uart_rx_data, MSG_ERROR) == 0)
             {
                 measure_start_time=0;
@@ -362,7 +376,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
             else if(strcmp(uart_rx_data, MSG_RETRY) == 0)
             {
                 retry_start_time = HAL_GetTick();
-
+                fail_buzzer_done = 0;
                 Change_State(STATE_RETRY_WAIT);
             }
 
@@ -496,6 +510,7 @@ int main(void)
 			// START 버튼
 			if(start_pressed)
 			{
+				fail_count = 0;
 				UART_Send(MSG_SYSTEM_START);
 
 				Change_State(STATE_WAIT_SEAT);
@@ -760,7 +775,7 @@ int main(void)
 		// PASS
 		// =========================
 		case STATE_PASS:
-
+			fail_count = 0;
 			LED_All_Off();
 
 			Green_LED_On();
