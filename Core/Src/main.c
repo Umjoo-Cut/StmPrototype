@@ -83,6 +83,7 @@ typedef enum {
     STATE_WAIT_SEAT,
 	STATE_SEAT_LOST_WAIT,
     STATE_WAIT_BLOW,
+	STATE_RETRY_WAIT,
     STATE_MEASURING,
     STATE_WAIT_RESULT,
     STATE_PASS,
@@ -137,6 +138,14 @@ static uint8_t measure_entered = 0;
 // Buzzer
 // =========================
 static uint8_t fail_buzzer_done = 0;
+
+// =========================
+// RETRY
+// =========================
+uint32_t retry_start_time = 0;
+#define RETRY_DELAY_TIME 5000
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -288,31 +297,7 @@ void UART_Send(const char* msg)
                       100);
 }
 
-// =========================
-// UART2 TEST
-// 자동 개행 포함
-// =========================
-//void UART_Send(const char* msg)
-//{
-//    char buffer[64];
-//
-//    snprintf(buffer,
-//             sizeof(buffer),
-//             "%s\r\n",
-//             msg);
-//
-//    // Raspberry Pi 통신
-//    HAL_UART_Transmit(&huart1,
-//                      (uint8_t*)buffer,
-//                      strlen(buffer),
-//                      100);
-//
-//    // PC 디버그 출력
-//    HAL_UART_Transmit(&huart2,
-//                      (uint8_t*)buffer,
-//                      strlen(buffer),
-//                      100);
-//}
+
 // =========================
 // 상태 전환
 // =========================
@@ -376,20 +361,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
             }
             else if(strcmp(uart_rx_data, MSG_RETRY) == 0)
             {
-                measure_start_time = 0;
-                last_sample_time = 0;
+                retry_start_time = HAL_GetTick();
 
-                last_humidity_time = HAL_GetTick()-1000;
-                humidity_count = 0;
-
-                // 버튼 상태 재동기화
-                blow_btn_prev =
-                    HAL_GPIO_ReadPin(
-                        BLOW_BTN_GPIO_Port,
-                        BLOW_BTN_Pin
-                    );
-
-                Change_State(STATE_WAIT_BLOW);
+                Change_State(STATE_RETRY_WAIT);
             }
 
             idx = 0;
@@ -584,6 +558,35 @@ int main(void)
 
 		        break;
 		    }
+		    break;
+		// =========================
+		// RETRY WAIT
+		// =========================
+		case STATE_RETRY_WAIT:
+			LED_All_Off();
+		    Green_LED_On();
+		    Yellow_LED_On();
+		    Red_LED_On();
+
+		    if(now - retry_start_time >= RETRY_DELAY_TIME)
+		    {
+		        measure_start_time = 0;
+		        last_sample_time = 0;
+
+		        last_humidity_time =
+		            HAL_GetTick()-1000;
+
+		        humidity_count = 0;
+
+		        blow_btn_prev =
+		            HAL_GPIO_ReadPin(
+		                BLOW_BTN_GPIO_Port,
+		                BLOW_BTN_Pin
+		            );
+
+		        Change_State(STATE_WAIT_BLOW);
+		    }
+
 		    break;
 		// =========================
 		// WAIT_BLOW
