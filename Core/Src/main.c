@@ -383,6 +383,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
             else if(strcmp(uart_rx_data, MSG_OTHER) == 0)
             {
+                Buzzer_Alert();   // 먼저 부저 울림
                 Change_State(STATE_IDLE);
             }
             idx = 0;
