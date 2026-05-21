@@ -29,14 +29,22 @@ AI 기반 차량 음주측정 및 시동 제어 시스템
 
 ## 3. 하드웨어 핀맵
 
-### STM32 수정사항
+### 하드웨어 구성
 
--   PC0 → 시트 버튼
--   PC2 → 불기 버튼
 
-### Raspberry Pi 핀맵
+<img width="776" height="548" alt="image" src="https://github.com/user-attachments/assets/b716a0ee-7971-4da8-b329-50076599b5a4" />
 
--   UART 통신 사용
+
+### STM 핀맵
+
+
+<img width="1014" height="775" alt="image" src="https://github.com/user-attachments/assets/2de658c1-b7a6-4cef-a738-ff93c89e1bbf" />
+
+
+### 라즈베리파이 핀맵
+
+<img width="767" height="478" alt="image" src="https://github.com/user-attachments/assets/b17c0158-de62-4a47-bf36-4937f400d29b" />
+
 
 ------------------------------------------------------------------------
 
