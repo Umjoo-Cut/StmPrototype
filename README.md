@@ -1,4 +1,4 @@
-[system_summary.md](https://github.com/user-attachments/files/28088806/system_summary.md)
+
 # AI 기반 차량 음주측정 및 시동 제어 시스템
 
 ## 1. 프로젝트 개요
